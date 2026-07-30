@@ -12,6 +12,7 @@ export function useFlagGame() {
     isComplete,
     startChallenge,
     playAgain,
+    loadPersistedGoal,
   } = useGameSession()
 
   const currentCountry = ref<Country>(allCountries[0]!)
@@ -76,9 +77,9 @@ export function useFlagGame() {
     seenNames.value = new Set()
   }
 
-  function beginChallenge() {
+  function beginChallenge(goal?: number) {
     resetSeen()
-    startChallenge()
+    startChallenge(goal)
     next()
   }
 
@@ -106,6 +107,7 @@ export function useFlagGame() {
   onMounted(() => {
     loadPool()
     loadQuiz()
+    loadPersistedGoal()
     next()
   })
 

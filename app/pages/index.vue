@@ -139,7 +139,7 @@
           >
             <div
               v-if="openMenu === 'session'"
-              class="absolute right-0 z-40 mt-2 w-48 origin-top-right overflow-hidden rounded-2xl border border-ink/8 bg-white/95 p-1.5 shadow-[0_18px_50px_rgba(12,18,34,0.14)] backdrop-blur-xl dark:border-white/10 dark:bg-ink-soft/95 dark:shadow-[0_18px_50px_rgba(0,0,0,0.45)]"
+              class="absolute right-0 z-40 mt-2 w-64 origin-top-right overflow-hidden rounded-2xl border border-ink/8 bg-white/95 p-1.5 shadow-[0_18px_50px_rgba(12,18,34,0.14)] backdrop-blur-xl dark:border-white/10 dark:bg-ink-soft/95 dark:shadow-[0_18px_50px_rgba(0,0,0,0.45)]"
               role="listbox"
               aria-label="Play mode"
             >
@@ -152,15 +152,47 @@
                 Free play
                 <Icon v-if="session === 'free' && !isActive && !isComplete" name="heroicons:check-20-solid" class="size-4" />
               </button>
-              <button
-                type="button"
-                class="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-colors duration-150"
-                :class="session === 'challenge' ? 'bg-accent/10 text-accent dark:bg-accent-bright/15 dark:text-accent-bright' : 'text-ink hover:bg-mist/70 dark:text-paper dark:hover:bg-white/5'"
-                @click="onStartChallenge"
-              >
-                Challenge · 10
-                <Icon v-if="session === 'challenge'" name="heroicons:check-20-solid" class="size-4" />
-              </button>
+
+              <div class="my-1.5 border-t border-ink/6 dark:border-white/8" />
+
+              <p class="px-3 pt-1 pb-2 font-mono text-[10px] tracking-[0.12em] text-fog uppercase">
+                Challenge length
+              </p>
+
+              <div class="mb-2 flex flex-wrap gap-1.5 px-2">
+                <button
+                  v-for="n in ROUND_GOAL_PRESETS"
+                  :key="n"
+                  type="button"
+                  class="min-w-10 rounded-lg px-2.5 py-1.5 text-sm font-medium tabular-nums transition-colors duration-150"
+                  :class="roundGoal === n
+                    ? 'bg-accent text-white dark:bg-accent-bright dark:text-ink'
+                    : 'bg-mist/80 text-ink hover:bg-mist dark:bg-white/5 dark:text-paper dark:hover:bg-white/10'"
+                  @click="onPickGoal(n)"
+                >
+                  {{ n }}
+                </button>
+              </div>
+
+              <div class="mb-2 flex items-center gap-2 px-2">
+                <label class="sr-only" for="challenge-goal-input">Custom rounds</label>
+                <input
+                  id="challenge-goal-input"
+                  v-model.number="goalDraft"
+                  type="number"
+                  :min="MIN_ROUND_GOAL"
+                  :max="MAX_ROUND_GOAL"
+                  class="h-9 w-full rounded-xl border border-ink/8 bg-paper px-3 text-sm tabular-nums text-ink focus:border-accent focus:outline-none dark:border-white/10 dark:bg-ink dark:text-paper dark:focus:border-accent-bright"
+                  @keydown.enter.prevent="onStartCustomChallenge"
+                >
+                <button
+                  type="button"
+                  class="h-9 shrink-0 rounded-xl bg-ink px-3 text-sm font-medium text-paper transition-[transform,background-color] duration-150 active:scale-[0.97] dark:bg-paper dark:text-ink"
+                  @click="onStartCustomChallenge"
+                >
+                  Start
+                </button>
+              </div>
             </div>
           </Transition>
         </div>
@@ -201,7 +233,7 @@
             Challenge complete
           </p>
           <p class="mt-3 text-6xl font-semibold tracking-tight text-ink tabular-nums dark:text-paper">
-            {{ score }}<span class="text-fog">/{{ ROUND_GOAL }}</span>
+            {{ score }}<span class="text-fog">/{{ roundGoal }}</span>
           </p>
         </div>
         <div class="flex flex-wrap items-center justify-center gap-3">
@@ -462,7 +494,11 @@ import { ROUND_SECONDS } from '~/composables/useFlagGame'
 import { CONTINENTS } from '~/composables/useCountryPool'
 import type { Continent, QuizMode } from '~/composables/useCountryPool'
 import { QUIZ_MODES } from '~/composables/useQuizMode'
-import { ROUND_GOAL } from '~/composables/useGameSession'
+import {
+  MIN_ROUND_GOAL,
+  MAX_ROUND_GOAL,
+  ROUND_GOAL_PRESETS,
+} from '~/composables/useGameSession'
 import type { SessionType } from '~/composables/useGameSession'
 
 type MenuId = 'regions' | 'quiz' | 'session'
@@ -499,12 +535,14 @@ const {
 
 const {
   session,
+  roundGoal,
   score,
   answered,
   isActive,
   isComplete,
   settingsLocked,
   setSession,
+  setRoundGoal,
   record,
   changeSettings,
 } = useGameSession()
@@ -525,6 +563,11 @@ const {
 const roundVisible = ref(true)
 const isAdvancingRound = ref(false)
 const openMenu = ref<MenuId | null>(null)
+const goalDraft = ref(roundGoal.value)
+
+watch(roundGoal, (n) => {
+  goalDraft.value = n
+})
 
 const regionsLabel = computed(() => {
   if (isAllActive.value) return 'All continents'
@@ -537,13 +580,13 @@ const quizLabel = computed(() =>
 )
 
 const sessionLabel = computed(() =>
-  session.value === 'challenge' ? 'Challenge' : 'Free play',
+  session.value === 'challenge' ? `Challenge · ${roundGoal.value}` : 'Free play',
 )
 
 const statusLine = computed(() => {
   const base = `${promptLabel.value} · ${pool.value.length}`
   if (session.value === 'challenge' && (isActive.value || isComplete.value)) {
-    return `${base} · ${Math.min(answered.value + 1, ROUND_GOAL)}/${ROUND_GOAL} · ${score.value} pts`
+    return `${base} · ${Math.min(answered.value + 1, roundGoal.value)}/${roundGoal.value} · ${score.value} pts`
   }
   return base
 })
@@ -629,12 +672,24 @@ function onSetSession(nextSession: SessionType) {
   }
 }
 
-function onStartChallenge() {
+function onStartChallenge(goal?: number) {
   if (settingsLocked.value) return
-  beginChallenge()
+  beginChallenge(goal)
   closeMenus()
   roundVisible.value = true
   isAdvancingRound.value = false
+}
+
+function onPickGoal(n: number) {
+  if (settingsLocked.value) return
+  setRoundGoal(n)
+  onStartChallenge(n)
+}
+
+function onStartCustomChallenge() {
+  if (settingsLocked.value) return
+  const n = Number(goalDraft.value)
+  onStartChallenge(n)
 }
 
 function onPlayAgain() {
