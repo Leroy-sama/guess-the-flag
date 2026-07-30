@@ -1,6 +1,5 @@
-import countries from '~/assets/data/countries.json'
-
-import type { Country } from '~/composables/useFlagGame'
+import { allCountries } from '~/composables/useCountryPool'
+import type { Country } from '~/composables/useCountryPool'
 
 const MAX_RESULTS = 8
 
@@ -14,7 +13,7 @@ export function useCountrySearch() {
     const term = query.value.trim().toLowerCase()
     if (!term) return []
 
-    return (countries as Country[])
+    return allCountries
       .filter(country => country.name.toLowerCase().includes(term))
       .slice(0, MAX_RESULTS)
   })

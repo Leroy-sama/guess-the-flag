@@ -1,19 +1,26 @@
-import countries from '~/assets/data/countries.json'
+import type { Country } from '~/composables/useCountryPool'
+import { allCountries } from '~/composables/useCountryPool'
 
 export const ROUND_SECONDS = 10
 
-export interface Country {
-  name: string
-  flags: {
-    svg: string
-  }
-}
-
 export function useFlagGame() {
-  const currentCountry = ref<Country>(countries[0] as Country)
+  const { pool, loadPersisted: loadPool } = useCountryPool()
+  const { loadPersisted: loadQuiz } = useQuizMode()
+  const {
+    session,
+    isActive,
+    isComplete,
+    startChallenge,
+    playAgain,
+  } = useGameSession()
+
+  const currentCountry = ref<Country>(allCountries[0]!)
   const revealed = ref(false)
   const timeLeft = ref(ROUND_SECONDS)
   const running = ref(false)
+
+  // ponytail: no-repeat within a challenge run; ceiling = pool size then allow repeats
+  const seenNames = ref<Set<string>>(new Set())
 
   let intervalId: ReturnType<typeof setInterval> | null = null
   let paused = false
@@ -48,11 +55,37 @@ export function useFlagGame() {
     revealed.value = true
   }
 
+  function pickFromPool(): Country {
+    const list = pool.value.length ? pool.value : allCountries
+    const available = list.filter(c => !seenNames.value.has(c.name))
+    const pickFrom = available.length ? available : list
+    return pickFrom[Math.floor(Math.random() * pickFrom.length)]!
+  }
+
   function next() {
-    const pool = countries as Country[]
-    currentCountry.value = pool[Math.floor(Math.random() * pool.length)]!
+    if (!pool.value.length && !allCountries.length) return
+    currentCountry.value = pickFromPool()
+    if (session.value === 'challenge' && isActive.value) {
+      seenNames.value = new Set([...seenNames.value, currentCountry.value.name])
+    }
     revealed.value = false
     startTimer()
+  }
+
+  function resetSeen() {
+    seenNames.value = new Set()
+  }
+
+  function beginChallenge() {
+    resetSeen()
+    startChallenge()
+    next()
+  }
+
+  function beginPlayAgain() {
+    resetSeen()
+    playAgain()
+    next()
   }
 
   function pauseTimer() {
@@ -62,13 +95,19 @@ export function useFlagGame() {
   }
 
   function resumeTimer() {
-    if (!paused || revealed.value || timeLeft.value <= 0) return
+    if (paused === false || revealed.value || timeLeft.value <= 0) return
+    if (isComplete.value) return
     paused = false
     running.value = true
     intervalId = setInterval(tick, 1000)
   }
 
-  next()
+  // ponytail: timer must not run during SSR — Nuxt throws on setInterval server-side
+  onMounted(() => {
+    loadPool()
+    loadQuiz()
+    next()
+  })
 
   onScopeDispose(() => {
     clearTimer()
@@ -83,5 +122,8 @@ export function useFlagGame() {
     reveal,
     pauseTimer,
     resumeTimer,
+    resetSeen,
+    beginChallenge,
+    beginPlayAgain,
   }
 }

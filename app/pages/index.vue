@@ -1,121 +1,394 @@
 <template>
-  <main class="relative flex min-h-screen flex-col items-center justify-center gap-8 bg-white p-6 dark:bg-slate-950">
-    <button
-      type="button"
-      class="absolute top-6 left-6 rounded-lg border border-gray-200 bg-white p-2.5 text-slate-700 shadow-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-      aria-label="Search countries"
-      @click="openSearch"
-    >
-      <Icon name="heroicons:magnifying-glass-20-solid" class="size-5" />
-    </button>
+  <main class="relative min-h-[100dvh] overflow-x-hidden bg-paper text-ink dark:bg-ink dark:text-paper">
+    <!-- Atmosphere -->
+    <div
+      class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(15,118,110,0.08),_transparent_55%)] dark:bg-[radial-gradient(ellipse_at_top,_rgba(20,184,166,0.12),_transparent_50%)]"
+      aria-hidden="true"
+    />
 
-    <button
-      type="button"
-      class="absolute top-6 right-6 rounded-lg border border-gray-200 bg-white p-2.5 text-slate-700 shadow-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-      :aria-label="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
-      @click="toggleTheme"
-    >
-      <Icon :name="isDark ? 'heroicons:sun-20-solid' : 'heroicons:moon-20-solid'" class="size-5" />
-    </button>
-
-    <div class="flex w-full max-w-[min(100%,37.5rem)] flex-col items-center gap-6">
-      <Transition
-        enter-active-class="transition-opacity duration-300 ease-out"
-        enter-from-class="opacity-0"
-        enter-to-class="opacity-100"
-        leave-active-class="transition-opacity duration-200 ease-in"
-        leave-from-class="opacity-100"
-        leave-to-class="opacity-0"
-      >
-        <div
-          v-if="!revealed && roundVisible"
-          class="h-1.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700"
-          role="progressbar"
-          :aria-valuenow="timeLeft"
-          :aria-valuemin="0"
-          :aria-valuemax="ROUND_SECONDS"
-          aria-label="Time remaining"
+    <!-- Top chrome -->
+    <header class="relative z-30 flex items-start justify-between gap-3 px-4 pt-4 sm:px-6 sm:pt-5">
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          class="inline-flex size-10 items-center justify-center rounded-full border border-ink/8 bg-white/80 text-ink shadow-[0_8px_30px_rgba(12,18,34,0.06)] backdrop-blur-md transition-[transform,background-color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97] dark:border-white/10 dark:bg-ink-soft/80 dark:text-paper dark:shadow-[0_8px_30px_rgba(0,0,0,0.35)]"
+          aria-label="Search countries"
+          @click="openSearch"
         >
-          <div
-            class="h-full rounded-full transition-[width] duration-1000 ease-linear"
-            :class="timeLeft > 3 ? 'bg-emerald-500 dark:bg-emerald-400' : 'bg-red-500 dark:bg-red-400'"
-            :style="{ width: `${(timeLeft / ROUND_SECONDS) * 100}%` }"
-          />
-        </div>
-      </Transition>
+          <Icon name="heroicons:magnifying-glass-20-solid" class="size-5" />
+        </button>
+      </div>
 
-      <Transition
-        mode="out-in"
-        enter-active-class="transition-all duration-300 ease-out"
-        enter-from-class="opacity-0 translate-y-3"
-        enter-to-class="opacity-100 translate-y-0"
-        leave-active-class="transition-all duration-200 ease-in"
-        leave-from-class="opacity-100 translate-y-0"
-        leave-to-class="opacity-0 -translate-y-3"
-        @after-leave="onRoundAfterLeave"
-      >
-        <div
-          v-if="roundVisible"
-          :key="currentCountry.name"
-          class="flex w-full flex-col items-center gap-6"
-        >
-          <img
-            :src="currentCountry.flags.svg"
-            :alt="revealed ? `${currentCountry.name} flag` : 'Country flag'"
-            class="w-full max-w-[min(100%,37.5rem)] cursor-pointer rounded-xl border border-gray-200 bg-white object-contain shadow-lg dark:border-gray-700 dark:bg-slate-900"
-            @click="reveal"
-          >
-
+      <div class="flex flex-wrap items-center justify-end gap-2">
+        <!-- Regions -->
+        <div class="relative">
           <button
             type="button"
-            class="text-center text-4xl font-bold tracking-tight text-slate-900 uppercase sm:text-5xl dark:text-slate-100"
-            :class="revealed ? 'cursor-default blur-0' : 'cursor-pointer blur-xl select-none'"
-            @click="reveal"
+            class="inline-flex h-10 max-w-[10.5rem] items-center gap-1.5 rounded-full border border-ink/8 bg-white/80 px-3.5 text-sm font-medium text-ink shadow-[0_8px_30px_rgba(12,18,34,0.06)] backdrop-blur-md transition-[transform,background-color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97] disabled:opacity-45 dark:border-white/10 dark:bg-ink-soft/80 dark:text-paper dark:shadow-[0_8px_30px_rgba(0,0,0,0.35)] sm:max-w-[14rem]"
+            :disabled="settingsLocked"
+            :aria-expanded="openMenu === 'regions'"
+            aria-haspopup="listbox"
+            @click="toggleMenu('regions')"
           >
-            {{ currentCountry.name }}
+            <span class="truncate">{{ regionsLabel }}</span>
+            <Icon name="heroicons:chevron-down-20-solid" class="size-4 shrink-0 opacity-50" />
+          </button>
+
+          <Transition
+            enter-active-class="transition-[opacity,transform] duration-[180ms] ease-[cubic-bezier(0.23,1,0.32,1)]"
+            enter-from-class="opacity-0 scale-95"
+            enter-to-class="opacity-100 scale-100"
+            leave-active-class="transition-[opacity,transform] duration-120 ease-[cubic-bezier(0.23,1,0.32,1)]"
+            leave-from-class="opacity-100 scale-100"
+            leave-to-class="opacity-0 scale-95"
+          >
+            <div
+              v-if="openMenu === 'regions'"
+              class="absolute right-0 z-40 mt-2 w-56 origin-top-right overflow-hidden rounded-2xl border border-ink/8 bg-white/95 p-1.5 shadow-[0_18px_50px_rgba(12,18,34,0.14)] backdrop-blur-xl dark:border-white/10 dark:bg-ink-soft/95 dark:shadow-[0_18px_50px_rgba(0,0,0,0.45)]"
+              role="listbox"
+              aria-label="Continents"
+            >
+              <button
+                type="button"
+                class="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-colors duration-150"
+                :class="isAllActive ? 'bg-accent/10 text-accent dark:bg-accent-bright/15 dark:text-accent-bright' : 'text-ink hover:bg-mist/70 dark:text-paper dark:hover:bg-white/5'"
+                @click="onSelectAll"
+              >
+                All continents
+                <Icon v-if="isAllActive" name="heroicons:check-20-solid" class="size-4" />
+              </button>
+              <button
+                v-for="region in CONTINENTS"
+                :key="region"
+                type="button"
+                class="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-colors duration-150"
+                :class="isRegionActive(region) ? 'bg-accent/10 text-accent dark:bg-accent-bright/15 dark:text-accent-bright' : 'text-ink hover:bg-mist/70 dark:text-paper dark:hover:bg-white/5'"
+                @click="onToggleRegion(region)"
+              >
+                {{ region }}
+                <Icon v-if="isRegionActive(region)" name="heroicons:check-20-solid" class="size-4" />
+              </button>
+            </div>
+          </Transition>
+        </div>
+
+        <!-- Quiz -->
+        <div class="relative">
+          <button
+            type="button"
+            class="inline-flex h-10 items-center gap-1.5 rounded-full border border-ink/8 bg-white/80 px-3.5 text-sm font-medium text-ink shadow-[0_8px_30px_rgba(12,18,34,0.06)] backdrop-blur-md transition-[transform,background-color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97] disabled:opacity-45 dark:border-white/10 dark:bg-ink-soft/80 dark:text-paper dark:shadow-[0_8px_30px_rgba(0,0,0,0.35)]"
+            :disabled="settingsLocked"
+            :aria-expanded="openMenu === 'quiz'"
+            aria-haspopup="listbox"
+            @click="toggleMenu('quiz')"
+          >
+            <span>{{ quizLabel }}</span>
+            <Icon name="heroicons:chevron-down-20-solid" class="size-4 shrink-0 opacity-50" />
+          </button>
+
+          <Transition
+            enter-active-class="transition-[opacity,transform] duration-[180ms] ease-[cubic-bezier(0.23,1,0.32,1)]"
+            enter-from-class="opacity-0 scale-95"
+            enter-to-class="opacity-100 scale-100"
+            leave-active-class="transition-[opacity,transform] duration-120 ease-[cubic-bezier(0.23,1,0.32,1)]"
+            leave-from-class="opacity-100 scale-100"
+            leave-to-class="opacity-0 scale-95"
+          >
+            <div
+              v-if="openMenu === 'quiz'"
+              class="absolute right-0 z-40 mt-2 w-44 origin-top-right overflow-hidden rounded-2xl border border-ink/8 bg-white/95 p-1.5 shadow-[0_18px_50px_rgba(12,18,34,0.14)] backdrop-blur-xl dark:border-white/10 dark:bg-ink-soft/95 dark:shadow-[0_18px_50px_rgba(0,0,0,0.45)]"
+              role="listbox"
+              aria-label="Quiz type"
+            >
+              <button
+                v-for="q in QUIZ_MODES"
+                :key="q.id"
+                type="button"
+                class="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-colors duration-150"
+                :class="quizMode === q.id ? 'bg-accent/10 text-accent dark:bg-accent-bright/15 dark:text-accent-bright' : 'text-ink hover:bg-mist/70 dark:text-paper dark:hover:bg-white/5'"
+                @click="onSetQuiz(q.id)"
+              >
+                {{ q.label }}
+                <Icon v-if="quizMode === q.id" name="heroicons:check-20-solid" class="size-4" />
+              </button>
+            </div>
+          </Transition>
+        </div>
+
+        <!-- Session -->
+        <div class="relative">
+          <button
+            type="button"
+            class="inline-flex h-10 items-center gap-1.5 rounded-full border border-ink/8 bg-white/80 px-3.5 text-sm font-medium text-ink shadow-[0_8px_30px_rgba(12,18,34,0.06)] backdrop-blur-md transition-[transform,background-color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97] disabled:opacity-45 dark:border-white/10 dark:bg-ink-soft/80 dark:text-paper dark:shadow-[0_8px_30px_rgba(0,0,0,0.35)]"
+            :disabled="settingsLocked"
+            :aria-expanded="openMenu === 'session'"
+            aria-haspopup="listbox"
+            @click="toggleMenu('session')"
+          >
+            <span>{{ sessionLabel }}</span>
+            <Icon name="heroicons:chevron-down-20-solid" class="size-4 shrink-0 opacity-50" />
+          </button>
+
+          <Transition
+            enter-active-class="transition-[opacity,transform] duration-[180ms] ease-[cubic-bezier(0.23,1,0.32,1)]"
+            enter-from-class="opacity-0 scale-95"
+            enter-to-class="opacity-100 scale-100"
+            leave-active-class="transition-[opacity,transform] duration-120 ease-[cubic-bezier(0.23,1,0.32,1)]"
+            leave-from-class="opacity-100 scale-100"
+            leave-to-class="opacity-0 scale-95"
+          >
+            <div
+              v-if="openMenu === 'session'"
+              class="absolute right-0 z-40 mt-2 w-48 origin-top-right overflow-hidden rounded-2xl border border-ink/8 bg-white/95 p-1.5 shadow-[0_18px_50px_rgba(12,18,34,0.14)] backdrop-blur-xl dark:border-white/10 dark:bg-ink-soft/95 dark:shadow-[0_18px_50px_rgba(0,0,0,0.45)]"
+              role="listbox"
+              aria-label="Play mode"
+            >
+              <button
+                type="button"
+                class="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-colors duration-150"
+                :class="session === 'free' && !isActive && !isComplete ? 'bg-accent/10 text-accent dark:bg-accent-bright/15 dark:text-accent-bright' : 'text-ink hover:bg-mist/70 dark:text-paper dark:hover:bg-white/5'"
+                @click="onSetSession('free')"
+              >
+                Free play
+                <Icon v-if="session === 'free' && !isActive && !isComplete" name="heroicons:check-20-solid" class="size-4" />
+              </button>
+              <button
+                type="button"
+                class="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-colors duration-150"
+                :class="session === 'challenge' ? 'bg-accent/10 text-accent dark:bg-accent-bright/15 dark:text-accent-bright' : 'text-ink hover:bg-mist/70 dark:text-paper dark:hover:bg-white/5'"
+                @click="onStartChallenge"
+              >
+                Challenge · 10
+                <Icon v-if="session === 'challenge'" name="heroicons:check-20-solid" class="size-4" />
+              </button>
+            </div>
+          </Transition>
+        </div>
+
+        <button
+          type="button"
+          class="inline-flex size-10 items-center justify-center rounded-full border border-ink/8 bg-white/80 text-ink shadow-[0_8px_30px_rgba(12,18,34,0.06)] backdrop-blur-md transition-[transform,background-color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97] dark:border-white/10 dark:bg-ink-soft/80 dark:text-paper dark:shadow-[0_8px_30px_rgba(0,0,0,0.35)]"
+          :aria-label="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+          @click="toggleTheme"
+        >
+          <Icon :name="isDark ? 'heroicons:sun-20-solid' : 'heroicons:moon-20-solid'" class="size-5" />
+        </button>
+      </div>
+    </header>
+
+    <!-- Click-away for menus -->
+    <button
+      v-if="openMenu"
+      type="button"
+      class="fixed inset-0 z-20 cursor-default"
+      aria-label="Close menu"
+      @click="openMenu = null"
+    />
+
+    <!-- Play surface -->
+    <section class="relative z-10 mx-auto flex min-h-[calc(100dvh-5.5rem)] w-full max-w-[40rem] flex-col items-center justify-center px-4 pb-10 pt-4 sm:px-6">
+      <p class="mb-5 font-mono text-[11px] tracking-[0.14em] text-fog uppercase dark:text-fog/80">
+        {{ statusLine }}
+      </p>
+
+      <!-- End screen -->
+      <div
+        v-if="isComplete"
+        class="flex w-full flex-col items-center gap-8"
+      >
+        <div class="text-center">
+          <p class="font-mono text-[11px] tracking-[0.16em] text-fog uppercase">
+            Challenge complete
+          </p>
+          <p class="mt-3 text-6xl font-semibold tracking-tight text-ink tabular-nums dark:text-paper">
+            {{ score }}<span class="text-fog">/{{ ROUND_GOAL }}</span>
+          </p>
+        </div>
+        <div class="flex flex-wrap items-center justify-center gap-3">
+          <button
+            type="button"
+            class="inline-flex h-11 items-center rounded-full bg-ink px-6 text-sm font-medium text-paper transition-[transform,background-color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97] dark:bg-paper dark:text-ink"
+            @click="onPlayAgain"
+          >
+            Play again
+            <kbd class="ml-2 hidden rounded bg-white/15 px-1.5 py-0.5 font-mono text-[10px] font-medium dark:bg-ink/10 sm:inline">Enter</kbd>
+          </button>
+          <button
+            type="button"
+            class="inline-flex h-11 items-center rounded-full border border-ink/10 bg-white/70 px-6 text-sm font-medium text-ink transition-[transform,background-color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97] dark:border-white/10 dark:bg-ink-soft dark:text-paper"
+            @click="onChangeSettings"
+          >
+            Change settings
           </button>
         </div>
-      </Transition>
+      </div>
 
-      <Transition
-        enter-active-class="transition-all duration-300 ease-out"
-        enter-from-class="opacity-0 translate-y-2"
-        enter-to-class="opacity-100 translate-y-0"
-        leave-active-class="transition-all duration-200 ease-in"
-        leave-from-class="opacity-100 translate-y-0"
-        leave-to-class="opacity-0 translate-y-2"
+      <!-- Round -->
+      <div
+        v-else
+        class="flex w-full flex-col items-center gap-7"
       >
-        <button
-          v-if="revealed && roundVisible"
-          type="button"
-          class="rounded-lg bg-slate-900 px-6 py-3 text-sm font-medium text-white shadow transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200"
-          :disabled="isAdvancingRound"
-          @click="handleNext"
+        <Transition
+          enter-active-class="transition-opacity duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]"
+          enter-from-class="opacity-0"
+          enter-to-class="opacity-100"
+          leave-active-class="transition-opacity duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]"
+          leave-from-class="opacity-100"
+          leave-to-class="opacity-0"
         >
-          Next country
-        </button>
-      </Transition>
-    </div>
+          <div
+            v-if="!revealed && roundVisible"
+            class="h-1 w-full max-w-md overflow-hidden rounded-full bg-mist dark:bg-white/10"
+            role="progressbar"
+            :aria-valuenow="timeLeft"
+            :aria-valuemin="0"
+            :aria-valuemax="ROUND_SECONDS"
+            aria-label="Time remaining"
+          >
+            <div
+              class="h-full rounded-full transition-[width] duration-1000 ease-linear"
+              :class="timeLeft > 3 ? 'bg-accent dark:bg-accent-bright' : 'bg-rose-500'"
+              :style="{ width: `${(timeLeft / ROUND_SECONDS) * 100}%` }"
+            />
+          </div>
+        </Transition>
 
+        <Transition
+          mode="out-in"
+          enter-active-class="transition-[opacity,transform] duration-220 ease-[cubic-bezier(0.23,1,0.32,1)]"
+          enter-from-class="opacity-0 translate-y-2"
+          enter-to-class="opacity-100 translate-y-0"
+          leave-active-class="transition-[opacity,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]"
+          leave-from-class="opacity-100 translate-y-0"
+          leave-to-class="opacity-0 -translate-y-1"
+          @after-leave="onRoundAfterLeave"
+        >
+          <div
+            v-if="roundVisible"
+            :key="`${currentCountry.name}-${quizMode}`"
+            class="flex w-full flex-col items-center gap-6"
+          >
+            <!-- Flag frame -->
+            <button
+              type="button"
+              class="group w-full max-w-md rounded-[1.75rem] bg-mist/80 p-1.5 transition-transform duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.99] dark:bg-white/5"
+              aria-label="Reveal answer"
+              @click="reveal"
+            >
+              <div class="overflow-hidden rounded-[calc(1.75rem-0.375rem)] bg-white shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] dark:bg-ink-soft dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                <img
+                  :src="currentCountry.flags.svg"
+                  :alt="revealed || showCountryName ? `${currentCountry.name} flag` : 'Country flag'"
+                  class="aspect-[3/2] w-full object-contain"
+                  draggable="false"
+                >
+              </div>
+            </button>
+
+            <p
+              v-if="showCountryName"
+              class="max-w-md px-2 text-center text-base font-medium tracking-tight text-fog"
+            >
+              {{ currentCountry.name }}
+            </p>
+
+            <!--
+              ponytail: never keep filter when revealed — blur(0) still creates a
+              filter containing block that clips multi-line glyphs.
+            -->
+            <div class="flex w-full max-w-md justify-center overflow-visible px-2 py-4">
+              <button
+                type="button"
+                class="w-full text-center font-semibold tracking-tight text-balance break-words text-ink uppercase transition-[filter,transform] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] dark:text-paper"
+                :class="[
+                  answerSizeClass,
+                  revealed ? 'cursor-default' : 'cursor-pointer select-none blur-[18px] active:scale-[0.99]',
+                ]"
+                @click="reveal"
+              >
+                {{ answerText(currentCountry) }}
+              </button>
+            </div>
+          </div>
+        </Transition>
+
+        <Transition
+          enter-active-class="transition-[opacity,transform] duration-[180ms] ease-[cubic-bezier(0.23,1,0.32,1)]"
+          enter-from-class="opacity-0 translate-y-2 scale-95"
+          enter-to-class="opacity-100 translate-y-0 scale-100"
+          leave-active-class="transition-opacity duration-120 ease-[cubic-bezier(0.23,1,0.32,1)]"
+          leave-from-class="opacity-100"
+          leave-to-class="opacity-0"
+        >
+          <div
+            v-if="revealed && roundVisible"
+            key="actions"
+            class="flex flex-col items-center gap-3"
+          >
+            <div class="flex flex-wrap items-center justify-center gap-3">
+              <template v-if="session === 'challenge' && isActive">
+                <button
+                  type="button"
+                  class="inline-flex h-11 items-center rounded-full bg-accent px-6 text-sm font-medium text-white transition-[transform,background-color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97] disabled:opacity-50 dark:bg-accent-bright dark:text-ink"
+                  :disabled="isAdvancingRound"
+                  @click="handleScore(true)"
+                >
+                  Got it
+                  <kbd class="ml-2 hidden rounded bg-white/20 px-1.5 py-0.5 font-mono text-[10px] font-medium sm:inline">Y</kbd>
+                </button>
+                <button
+                  type="button"
+                  class="inline-flex h-11 items-center rounded-full border border-ink/10 bg-white/70 px-6 text-sm font-medium text-ink transition-[transform,background-color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97] disabled:opacity-50 dark:border-white/10 dark:bg-ink-soft dark:text-paper"
+                  :disabled="isAdvancingRound"
+                  @click="handleScore(false)"
+                >
+                  Missed
+                  <kbd class="ml-2 hidden rounded bg-ink/8 px-1.5 py-0.5 font-mono text-[10px] font-medium dark:bg-white/10 sm:inline">N</kbd>
+                </button>
+              </template>
+              <button
+                v-else
+                type="button"
+                class="inline-flex h-11 items-center rounded-full bg-ink px-6 text-sm font-medium text-paper transition-[transform,background-color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97] disabled:opacity-50 dark:bg-paper dark:text-ink"
+                :disabled="isAdvancingRound"
+                @click="handleNext"
+              >
+                Next country
+                <kbd class="ml-2 hidden rounded bg-white/15 px-1.5 py-0.5 font-mono text-[10px] font-medium dark:bg-ink/10 sm:inline">Space</kbd>
+              </button>
+            </div>
+          </div>
+          <p
+            v-else-if="!revealed && roundVisible"
+            key="hint"
+            class="hidden font-mono text-[11px] tracking-wide text-fog sm:block"
+          >
+            Space to reveal
+          </p>
+        </Transition>
+      </div>
+    </section>
+
+    <!-- Search -->
     <Teleport to="body">
       <div
         v-if="isSearchOpen"
-        class="fixed inset-0 z-50 flex items-start justify-center bg-black/50 p-4 pt-20 sm:pt-24"
+        class="fixed inset-0 z-50 flex items-start justify-center bg-ink/40 p-4 pt-20 backdrop-blur-sm sm:pt-24"
         @click.self="closeSearch"
       >
         <div
-          class="flex w-full max-w-lg flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-slate-900"
+          class="flex w-full max-w-lg flex-col overflow-hidden rounded-3xl border border-ink/8 bg-white shadow-[0_24px_80px_rgba(12,18,34,0.25)] dark:border-white/10 dark:bg-ink-soft"
           role="dialog"
           aria-modal="true"
           aria-label="Country search"
         >
-          <div class="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-700">
-            <h2 class="text-sm font-semibold text-slate-900 dark:text-slate-100">
+          <div class="flex items-center justify-between border-b border-ink/6 px-5 py-4 dark:border-white/8">
+            <h2 class="text-sm font-semibold text-ink dark:text-paper">
               {{ previewCountry ? previewCountry.name : 'Find a country' }}
             </h2>
             <button
               type="button"
-              class="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-gray-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+              class="inline-flex size-8 items-center justify-center rounded-full text-fog transition-[transform,background-color] duration-150 active:scale-[0.97] hover:bg-mist dark:hover:bg-white/5"
               aria-label="Close search"
               @click="closeSearch"
             >
@@ -124,17 +397,19 @@
           </div>
 
           <div v-if="previewCountry" class="flex flex-col items-center gap-4 p-6">
-            <img
-              :src="previewCountry.flags.svg"
-              :alt="`${previewCountry.name} flag`"
-              class="w-full max-w-sm rounded-xl border border-gray-200 bg-white object-contain shadow-lg dark:border-gray-700 dark:bg-slate-950"
-            >
-            <p class="text-center text-2xl font-bold text-slate-900 uppercase dark:text-slate-100">
+            <div class="w-full max-w-sm rounded-2xl bg-mist/80 p-1.5 dark:bg-white/5">
+              <img
+                :src="previewCountry.flags.svg"
+                :alt="`${previewCountry.name} flag`"
+                class="aspect-[3/2] w-full rounded-[calc(1rem-2px)] bg-white object-contain dark:bg-ink"
+              >
+            </div>
+            <p class="px-2 text-center text-2xl leading-snug font-semibold text-balance break-words text-ink dark:text-paper">
               {{ previewCountry.name }}
             </p>
             <button
               type="button"
-              class="text-sm font-medium text-slate-600 transition-colors hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
+              class="text-sm font-medium text-fog transition-colors hover:text-ink dark:hover:text-paper"
               @click="backToSearch"
             >
               Search again
@@ -147,22 +422,22 @@
               v-model="searchQuery"
               type="search"
               placeholder="Search by country name…"
-              class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none dark:border-gray-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-slate-500"
+              class="w-full rounded-2xl border border-ink/8 bg-paper px-4 py-3 text-ink placeholder:text-fog focus:border-accent focus:outline-none dark:border-white/10 dark:bg-ink dark:text-paper dark:focus:border-accent-bright"
             >
 
             <ul v-if="searchQuery.trim() && filteredCountries.length" class="flex flex-col gap-1">
               <li v-for="country in filteredCountries" :key="country.name">
                 <button
                   type="button"
-                  class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-gray-100 dark:hover:bg-slate-800"
+                  class="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors hover:bg-mist/80 dark:hover:bg-white/5"
                   @click="selectCountry(country)"
                 >
                   <img
                     :src="country.flags.svg"
                     :alt="`${country.name} flag`"
-                    class="h-6 w-8 shrink-0 rounded border border-gray-200 bg-white object-cover dark:border-gray-700 dark:bg-slate-950"
+                    class="h-6 w-9 shrink-0 rounded border border-ink/8 bg-white object-cover dark:border-white/10 dark:bg-ink"
                   >
-                  <span class="text-sm font-medium text-slate-900 dark:text-slate-100">
+                  <span class="text-sm font-medium text-ink dark:text-paper">
                     {{ country.name }}
                   </span>
                 </button>
@@ -171,7 +446,7 @@
 
             <p
               v-else-if="searchQuery.trim()"
-              class="px-1 py-2 text-sm text-slate-500 dark:text-slate-400"
+              class="px-1 py-2 text-sm text-fog"
             >
               No countries found.
             </p>
@@ -184,8 +459,56 @@
 
 <script setup lang="ts">
 import { ROUND_SECONDS } from '~/composables/useFlagGame'
+import { CONTINENTS } from '~/composables/useCountryPool'
+import type { Continent, QuizMode } from '~/composables/useCountryPool'
+import { QUIZ_MODES } from '~/composables/useQuizMode'
+import { ROUND_GOAL } from '~/composables/useGameSession'
+import type { SessionType } from '~/composables/useGameSession'
 
-const { currentCountry, revealed, timeLeft, next, reveal, pauseTimer, resumeTimer } = useFlagGame()
+type MenuId = 'regions' | 'quiz' | 'session'
+
+const {
+  currentCountry,
+  revealed,
+  timeLeft,
+  next,
+  reveal,
+  pauseTimer,
+  resumeTimer,
+  resetSeen,
+  beginChallenge,
+  beginPlayAgain,
+} = useFlagGame()
+
+const {
+  pool,
+  selectedRegions,
+  isAllActive,
+  selectAll,
+  toggleRegion,
+  isRegionActive,
+} = useCountryPool()
+
+const {
+  quizMode,
+  promptLabel,
+  showCountryName,
+  answerText,
+  setMode,
+} = useQuizMode()
+
+const {
+  session,
+  score,
+  answered,
+  isActive,
+  isComplete,
+  settingsLocked,
+  setSession,
+  record,
+  changeSettings,
+} = useGameSession()
+
 const { isDark, toggleTheme } = useTheme()
 const {
   isOpen: isSearchOpen,
@@ -201,11 +524,61 @@ const {
 
 const roundVisible = ref(true)
 const isAdvancingRound = ref(false)
+const openMenu = ref<MenuId | null>(null)
 
-function handleNext() {
+const regionsLabel = computed(() => {
+  if (isAllActive.value) return 'All continents'
+  if (selectedRegions.value.length === 1) return selectedRegions.value[0]!
+  return `${selectedRegions.value.length} continents`
+})
+
+const quizLabel = computed(() =>
+  QUIZ_MODES.find(q => q.id === quizMode.value)?.label ?? 'Flag',
+)
+
+const sessionLabel = computed(() =>
+  session.value === 'challenge' ? 'Challenge' : 'Free play',
+)
+
+const statusLine = computed(() => {
+  const base = `${promptLabel.value} · ${pool.value.length}`
+  if (session.value === 'challenge' && (isActive.value || isComplete.value)) {
+    return `${base} · ${Math.min(answered.value + 1, ROUND_GOAL)}/${ROUND_GOAL} · ${score.value} pts`
+  }
+  return base
+})
+
+const answerSizeClass = computed(() => {
+  const len = answerText(currentCountry.value).length
+  if (len > 36) return 'text-xl leading-snug sm:text-2xl'
+  if (len > 24) return 'text-2xl leading-snug sm:text-3xl'
+  return 'text-3xl leading-snug sm:text-4xl'
+})
+
+function toggleMenu(id: MenuId) {
+  if (settingsLocked.value) return
+  openMenu.value = openMenu.value === id ? null : id
+}
+
+function closeMenus() {
+  openMenu.value = null
+}
+
+function advanceRound() {
   if (isAdvancingRound.value) return
   isAdvancingRound.value = true
   roundVisible.value = false
+}
+
+function handleNext() {
+  advanceRound()
+}
+
+function handleScore(gotIt: boolean) {
+  if (isAdvancingRound.value) return
+  const finished = record(gotIt)
+  if (finished) return
+  advanceRound()
 }
 
 function onRoundAfterLeave() {
@@ -215,8 +588,107 @@ function onRoundAfterLeave() {
   isAdvancingRound.value = false
 }
 
+function refreshRound() {
+  if (settingsLocked.value || isComplete.value) return
+  resetSeen()
+  if (roundVisible.value) advanceRound()
+  else {
+    next()
+    roundVisible.value = true
+    isAdvancingRound.value = false
+  }
+}
+
+function onSelectAll() {
+  if (settingsLocked.value) return
+  selectAll()
+  closeMenus()
+  if (session.value === 'free') refreshRound()
+}
+
+function onToggleRegion(region: Continent) {
+  if (settingsLocked.value) return
+  toggleRegion(region)
+  if (session.value === 'free') refreshRound()
+}
+
+function onSetQuiz(mode: QuizMode) {
+  if (settingsLocked.value) return
+  setMode(mode)
+  closeMenus()
+  if (session.value === 'free') refreshRound()
+}
+
+function onSetSession(nextSession: SessionType) {
+  if (settingsLocked.value) return
+  if (nextSession === 'free') {
+    setSession('free')
+    resetSeen()
+    closeMenus()
+    refreshRound()
+  }
+}
+
+function onStartChallenge() {
+  if (settingsLocked.value) return
+  beginChallenge()
+  closeMenus()
+  roundVisible.value = true
+  isAdvancingRound.value = false
+}
+
+function onPlayAgain() {
+  beginPlayAgain()
+  roundVisible.value = true
+  isAdvancingRound.value = false
+}
+
+function onChangeSettings() {
+  changeSettings()
+  resetSeen()
+  refreshRound()
+}
+
+const isChallengeScoring = computed(
+  () => session.value === 'challenge' && isActive.value && revealed.value,
+)
+
+useGameHotkeys(
+  {
+    revealed,
+    roundVisible,
+    isAdvancing: isAdvancingRound,
+    isComplete,
+    isChallengeScoring,
+    isSearchOpen,
+  },
+  {
+    reveal,
+    next: handleNext,
+    scoreGotIt: () => handleScore(true),
+    scoreMissed: () => handleScore(false),
+    playAgain: onPlayAgain,
+    openSearch: () => {
+      closeMenus()
+      openSearch()
+    },
+    closeOverlays: () => {
+      if (isSearchOpen.value) closeSearch()
+      closeMenus()
+    },
+  },
+)
+
 watch(isSearchOpen, (open) => {
-  if (open) pauseTimer()
+  if (open) {
+    closeMenus()
+    pauseTimer()
+  }
   else resumeTimer()
+})
+
+watch(openMenu, (menu) => {
+  if (menu) pauseTimer()
+  else if (!isSearchOpen.value) resumeTimer()
 })
 </script>
