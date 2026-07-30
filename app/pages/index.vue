@@ -501,6 +501,12 @@ import {
 } from '~/composables/useGameSession'
 import type { SessionType } from '~/composables/useGameSession'
 
+useSeoMeta({
+  title: 'Play',
+  description:
+    'Guess the country from its flag, capital, or language. Pick continents, free play, or a scored challenge.',
+})
+
 type MenuId = 'regions' | 'quiz' | 'session'
 
 const {
