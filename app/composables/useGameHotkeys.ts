@@ -26,6 +26,7 @@ export interface GameHotkeyState {
   isComplete: Ref<boolean>
   isChallengeScoring: Ref<boolean>
   isSearchOpen: Ref<boolean>
+  canOpenSearch: Ref<boolean>
 }
 
 /**
@@ -52,10 +53,12 @@ export function useGameHotkeys(
     const key = event.key
     const code = event.code
 
-    // Open search
+    // Open search (blocked in challenge)
     if (key === '/' || key === '?') {
-      event.preventDefault()
-      handlers.openSearch()
+      if (state.canOpenSearch.value) {
+        event.preventDefault()
+        handlers.openSearch()
+      }
       return
     }
 

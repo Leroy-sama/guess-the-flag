@@ -9,193 +9,227 @@
     <!-- Top chrome -->
     <header class="relative z-30 flex items-start justify-between gap-3 px-4 pt-4 sm:px-6 sm:pt-5">
       <div class="flex items-center gap-2">
-        <button
-          type="button"
-          class="inline-flex size-10 items-center justify-center rounded-full border border-ink/8 bg-white/80 text-ink shadow-[0_8px_30px_rgba(12,18,34,0.06)] backdrop-blur-md transition-[transform,background-color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97] dark:border-white/10 dark:bg-ink-soft/80 dark:text-paper dark:shadow-[0_8px_30px_rgba(0,0,0,0.35)]"
-          aria-label="Search countries"
-          @click="openSearch"
+        <Transition
+          mode="out-in"
+          enter-active-class="transition-[opacity,transform] duration-[180ms] ease-[cubic-bezier(0.23,1,0.32,1)]"
+          enter-from-class="opacity-0 scale-95"
+          enter-to-class="opacity-100 scale-100"
+          leave-active-class="transition-[opacity,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]"
+          leave-from-class="opacity-100 scale-100"
+          leave-to-class="opacity-0 scale-95"
         >
-          <Icon name="heroicons:magnifying-glass-20-solid" class="size-5" />
-        </button>
+          <button
+            v-if="settingsLocked"
+            key="quit"
+            type="button"
+            class="inline-flex h-10 items-center gap-1.5 rounded-full border border-ink/8 bg-white/80 px-3.5 text-sm font-medium text-ink shadow-[0_8px_30px_rgba(12,18,34,0.06)] backdrop-blur-md transition-[transform,background-color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97] dark:border-white/10 dark:bg-ink-soft/80 dark:text-paper dark:shadow-[0_8px_30px_rgba(0,0,0,0.35)]"
+            aria-label="Quit challenge"
+            @click="onQuitChallenge"
+          >
+            <Icon name="heroicons:x-mark-20-solid" class="size-4 shrink-0 opacity-60" />
+            Quit
+          </button>
+          <button
+            v-else-if="!challengeChromeHidden"
+            key="search"
+            type="button"
+            class="inline-flex size-10 items-center justify-center rounded-full border border-ink/8 bg-white/80 text-ink shadow-[0_8px_30px_rgba(12,18,34,0.06)] backdrop-blur-md transition-[transform,background-color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97] dark:border-white/10 dark:bg-ink-soft/80 dark:text-paper dark:shadow-[0_8px_30px_rgba(0,0,0,0.35)]"
+            aria-label="Search countries"
+            @click="openSearch"
+          >
+            <Icon name="heroicons:magnifying-glass-20-solid" class="size-5" />
+          </button>
+        </Transition>
       </div>
 
       <div class="flex flex-wrap items-center justify-end gap-2">
-        <!-- Regions -->
-        <div class="relative">
-          <button
-            type="button"
-            class="inline-flex h-10 max-w-[10.5rem] items-center gap-1.5 rounded-full border border-ink/8 bg-white/80 px-3.5 text-sm font-medium text-ink shadow-[0_8px_30px_rgba(12,18,34,0.06)] backdrop-blur-md transition-[transform,background-color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97] disabled:opacity-45 dark:border-white/10 dark:bg-ink-soft/80 dark:text-paper dark:shadow-[0_8px_30px_rgba(0,0,0,0.35)] sm:max-w-[14rem]"
-            :disabled="settingsLocked"
-            :aria-expanded="openMenu === 'regions'"
-            aria-haspopup="listbox"
-            @click="toggleMenu('regions')"
+        <Transition
+          enter-active-class="transition-[opacity,transform] duration-[220ms] ease-[cubic-bezier(0.23,1,0.32,1)]"
+          enter-from-class="opacity-0 -translate-y-1"
+          enter-to-class="opacity-100 translate-y-0"
+          leave-active-class="transition-[opacity,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]"
+          leave-from-class="opacity-100 translate-y-0"
+          leave-to-class="opacity-0 -translate-y-1"
+        >
+          <div
+            v-if="!challengeChromeHidden"
+            class="flex flex-wrap items-center justify-end gap-2"
           >
-            <span class="truncate">{{ regionsLabel }}</span>
-            <Icon name="heroicons:chevron-down-20-solid" class="size-4 shrink-0 opacity-50" />
-          </button>
-
-          <Transition
-            enter-active-class="transition-[opacity,transform] duration-[180ms] ease-[cubic-bezier(0.23,1,0.32,1)]"
-            enter-from-class="opacity-0 scale-95"
-            enter-to-class="opacity-100 scale-100"
-            leave-active-class="transition-[opacity,transform] duration-120 ease-[cubic-bezier(0.23,1,0.32,1)]"
-            leave-from-class="opacity-100 scale-100"
-            leave-to-class="opacity-0 scale-95"
-          >
-            <div
-              v-if="openMenu === 'regions'"
-              class="absolute right-0 z-40 mt-2 w-56 origin-top-right overflow-hidden rounded-2xl border border-ink/8 bg-white/95 p-1.5 shadow-[0_18px_50px_rgba(12,18,34,0.14)] backdrop-blur-xl dark:border-white/10 dark:bg-ink-soft/95 dark:shadow-[0_18px_50px_rgba(0,0,0,0.45)]"
-              role="listbox"
-              aria-label="Continents"
-            >
+            <!-- Regions -->
+            <div class="relative">
               <button
                 type="button"
-                class="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-colors duration-150"
-                :class="isAllActive ? 'bg-accent/10 text-accent dark:bg-accent-bright/15 dark:text-accent-bright' : 'text-ink hover:bg-mist/70 dark:text-paper dark:hover:bg-white/5'"
-                @click="onSelectAll"
+                class="inline-flex h-10 max-w-[10.5rem] items-center gap-1.5 rounded-full border border-ink/8 bg-white/80 px-3.5 text-sm font-medium text-ink shadow-[0_8px_30px_rgba(12,18,34,0.06)] backdrop-blur-md transition-[transform,background-color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97] dark:border-white/10 dark:bg-ink-soft/80 dark:text-paper dark:shadow-[0_8px_30px_rgba(0,0,0,0.35)] sm:max-w-[14rem]"
+                :aria-expanded="openMenu === 'regions'"
+                aria-haspopup="listbox"
+                @click="toggleMenu('regions')"
               >
-                All continents
-                <Icon v-if="isAllActive" name="heroicons:check-20-solid" class="size-4" />
-              </button>
-              <button
-                v-for="region in CONTINENTS"
-                :key="region"
-                type="button"
-                class="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-colors duration-150"
-                :class="isRegionActive(region) ? 'bg-accent/10 text-accent dark:bg-accent-bright/15 dark:text-accent-bright' : 'text-ink hover:bg-mist/70 dark:text-paper dark:hover:bg-white/5'"
-                @click="onToggleRegion(region)"
-              >
-                {{ region }}
-                <Icon v-if="isRegionActive(region)" name="heroicons:check-20-solid" class="size-4" />
-              </button>
-            </div>
-          </Transition>
-        </div>
-
-        <!-- Quiz -->
-        <div class="relative">
-          <button
-            type="button"
-            class="inline-flex h-10 items-center gap-1.5 rounded-full border border-ink/8 bg-white/80 px-3.5 text-sm font-medium text-ink shadow-[0_8px_30px_rgba(12,18,34,0.06)] backdrop-blur-md transition-[transform,background-color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97] disabled:opacity-45 dark:border-white/10 dark:bg-ink-soft/80 dark:text-paper dark:shadow-[0_8px_30px_rgba(0,0,0,0.35)]"
-            :disabled="settingsLocked"
-            :aria-expanded="openMenu === 'quiz'"
-            aria-haspopup="listbox"
-            @click="toggleMenu('quiz')"
-          >
-            <span>{{ quizLabel }}</span>
-            <Icon name="heroicons:chevron-down-20-solid" class="size-4 shrink-0 opacity-50" />
-          </button>
-
-          <Transition
-            enter-active-class="transition-[opacity,transform] duration-[180ms] ease-[cubic-bezier(0.23,1,0.32,1)]"
-            enter-from-class="opacity-0 scale-95"
-            enter-to-class="opacity-100 scale-100"
-            leave-active-class="transition-[opacity,transform] duration-120 ease-[cubic-bezier(0.23,1,0.32,1)]"
-            leave-from-class="opacity-100 scale-100"
-            leave-to-class="opacity-0 scale-95"
-          >
-            <div
-              v-if="openMenu === 'quiz'"
-              class="absolute right-0 z-40 mt-2 w-44 origin-top-right overflow-hidden rounded-2xl border border-ink/8 bg-white/95 p-1.5 shadow-[0_18px_50px_rgba(12,18,34,0.14)] backdrop-blur-xl dark:border-white/10 dark:bg-ink-soft/95 dark:shadow-[0_18px_50px_rgba(0,0,0,0.45)]"
-              role="listbox"
-              aria-label="Quiz type"
-            >
-              <button
-                v-for="q in QUIZ_MODES"
-                :key="q.id"
-                type="button"
-                class="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-colors duration-150"
-                :class="quizMode === q.id ? 'bg-accent/10 text-accent dark:bg-accent-bright/15 dark:text-accent-bright' : 'text-ink hover:bg-mist/70 dark:text-paper dark:hover:bg-white/5'"
-                @click="onSetQuiz(q.id)"
-              >
-                {{ q.label }}
-                <Icon v-if="quizMode === q.id" name="heroicons:check-20-solid" class="size-4" />
-              </button>
-            </div>
-          </Transition>
-        </div>
-
-        <!-- Session -->
-        <div class="relative">
-          <button
-            type="button"
-            class="inline-flex h-10 items-center gap-1.5 rounded-full border border-ink/8 bg-white/80 px-3.5 text-sm font-medium text-ink shadow-[0_8px_30px_rgba(12,18,34,0.06)] backdrop-blur-md transition-[transform,background-color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97] disabled:opacity-45 dark:border-white/10 dark:bg-ink-soft/80 dark:text-paper dark:shadow-[0_8px_30px_rgba(0,0,0,0.35)]"
-            :disabled="settingsLocked"
-            :aria-expanded="openMenu === 'session'"
-            aria-haspopup="listbox"
-            @click="toggleMenu('session')"
-          >
-            <span>{{ sessionLabel }}</span>
-            <Icon name="heroicons:chevron-down-20-solid" class="size-4 shrink-0 opacity-50" />
-          </button>
-
-          <Transition
-            enter-active-class="transition-[opacity,transform] duration-[180ms] ease-[cubic-bezier(0.23,1,0.32,1)]"
-            enter-from-class="opacity-0 scale-95"
-            enter-to-class="opacity-100 scale-100"
-            leave-active-class="transition-[opacity,transform] duration-120 ease-[cubic-bezier(0.23,1,0.32,1)]"
-            leave-from-class="opacity-100 scale-100"
-            leave-to-class="opacity-0 scale-95"
-          >
-            <div
-              v-if="openMenu === 'session'"
-              class="absolute right-0 z-40 mt-2 w-64 origin-top-right overflow-hidden rounded-2xl border border-ink/8 bg-white/95 p-1.5 shadow-[0_18px_50px_rgba(12,18,34,0.14)] backdrop-blur-xl dark:border-white/10 dark:bg-ink-soft/95 dark:shadow-[0_18px_50px_rgba(0,0,0,0.45)]"
-              role="listbox"
-              aria-label="Play mode"
-            >
-              <button
-                type="button"
-                class="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-colors duration-150"
-                :class="session === 'free' && !isActive && !isComplete ? 'bg-accent/10 text-accent dark:bg-accent-bright/15 dark:text-accent-bright' : 'text-ink hover:bg-mist/70 dark:text-paper dark:hover:bg-white/5'"
-                @click="onSetSession('free')"
-              >
-                Free play
-                <Icon v-if="session === 'free' && !isActive && !isComplete" name="heroicons:check-20-solid" class="size-4" />
+                <span class="truncate">{{ regionsLabel }}</span>
+                <Icon name="heroicons:chevron-down-20-solid" class="size-4 shrink-0 opacity-50" />
               </button>
 
-              <div class="my-1.5 border-t border-ink/6 dark:border-white/8" />
-
-              <p class="px-3 pt-1 pb-2 font-mono text-[10px] tracking-[0.12em] text-fog uppercase">
-                Challenge length
-              </p>
-
-              <div class="mb-2 flex flex-wrap gap-1.5 px-2">
-                <button
-                  v-for="n in ROUND_GOAL_PRESETS"
-                  :key="n"
-                  type="button"
-                  class="min-w-10 rounded-lg px-2.5 py-1.5 text-sm font-medium tabular-nums transition-colors duration-150"
-                  :class="roundGoal === n
-                    ? 'bg-accent text-white dark:bg-accent-bright dark:text-ink'
-                    : 'bg-mist/80 text-ink hover:bg-mist dark:bg-white/5 dark:text-paper dark:hover:bg-white/10'"
-                  @click="onPickGoal(n)"
+              <Transition
+                enter-active-class="transition-[opacity,transform] duration-[180ms] ease-[cubic-bezier(0.23,1,0.32,1)]"
+                enter-from-class="opacity-0 scale-95"
+                enter-to-class="opacity-100 scale-100"
+                leave-active-class="transition-[opacity,transform] duration-120 ease-[cubic-bezier(0.23,1,0.32,1)]"
+                leave-from-class="opacity-100 scale-100"
+                leave-to-class="opacity-0 scale-95"
+              >
+                <div
+                  v-if="openMenu === 'regions'"
+                  class="absolute right-0 z-40 mt-2 w-56 origin-top-right overflow-hidden rounded-2xl border border-ink/8 bg-white/95 p-1.5 shadow-[0_18px_50px_rgba(12,18,34,0.14)] backdrop-blur-xl dark:border-white/10 dark:bg-ink-soft/95 dark:shadow-[0_18px_50px_rgba(0,0,0,0.45)]"
+                  role="listbox"
+                  aria-label="Continents"
                 >
-                  {{ n }}
-                </button>
-              </div>
-
-              <div class="mb-2 flex items-center gap-2 px-2">
-                <label class="sr-only" for="challenge-goal-input">Custom rounds</label>
-                <input
-                  id="challenge-goal-input"
-                  v-model.number="goalDraft"
-                  type="number"
-                  :min="MIN_ROUND_GOAL"
-                  :max="MAX_ROUND_GOAL"
-                  class="h-9 w-full rounded-xl border border-ink/8 bg-paper px-3 text-sm tabular-nums text-ink focus:border-accent focus:outline-none dark:border-white/10 dark:bg-ink dark:text-paper dark:focus:border-accent-bright"
-                  @keydown.enter.prevent="onStartCustomChallenge"
-                >
-                <button
-                  type="button"
-                  class="h-9 shrink-0 rounded-xl bg-ink px-3 text-sm font-medium text-paper transition-[transform,background-color] duration-150 active:scale-[0.97] dark:bg-paper dark:text-ink"
-                  @click="onStartCustomChallenge"
-                >
-                  Start
-                </button>
-              </div>
+                  <button
+                    type="button"
+                    class="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-colors duration-150"
+                    :class="isAllActive ? 'bg-accent/10 text-accent dark:bg-accent-bright/15 dark:text-accent-bright' : 'text-ink hover:bg-mist/70 dark:text-paper dark:hover:bg-white/5'"
+                    @click="onSelectAll"
+                  >
+                    All continents
+                    <Icon v-if="isAllActive" name="heroicons:check-20-solid" class="size-4" />
+                  </button>
+                  <button
+                    v-for="region in CONTINENTS"
+                    :key="region"
+                    type="button"
+                    class="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-colors duration-150"
+                    :class="isRegionActive(region) ? 'bg-accent/10 text-accent dark:bg-accent-bright/15 dark:text-accent-bright' : 'text-ink hover:bg-mist/70 dark:text-paper dark:hover:bg-white/5'"
+                    @click="onToggleRegion(region)"
+                  >
+                    {{ region }}
+                    <Icon v-if="isRegionActive(region)" name="heroicons:check-20-solid" class="size-4" />
+                  </button>
+                </div>
+              </Transition>
             </div>
-          </Transition>
-        </div>
+
+            <!-- Quiz -->
+            <div class="relative">
+              <button
+                type="button"
+                class="inline-flex h-10 items-center gap-1.5 rounded-full border border-ink/8 bg-white/80 px-3.5 text-sm font-medium text-ink shadow-[0_8px_30px_rgba(12,18,34,0.06)] backdrop-blur-md transition-[transform,background-color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97] dark:border-white/10 dark:bg-ink-soft/80 dark:text-paper dark:shadow-[0_8px_30px_rgba(0,0,0,0.35)]"
+                :aria-expanded="openMenu === 'quiz'"
+                aria-haspopup="listbox"
+                @click="toggleMenu('quiz')"
+              >
+                <span>{{ quizLabel }}</span>
+                <Icon name="heroicons:chevron-down-20-solid" class="size-4 shrink-0 opacity-50" />
+              </button>
+
+              <Transition
+                enter-active-class="transition-[opacity,transform] duration-[180ms] ease-[cubic-bezier(0.23,1,0.32,1)]"
+                enter-from-class="opacity-0 scale-95"
+                enter-to-class="opacity-100 scale-100"
+                leave-active-class="transition-[opacity,transform] duration-120 ease-[cubic-bezier(0.23,1,0.32,1)]"
+                leave-from-class="opacity-100 scale-100"
+                leave-to-class="opacity-0 scale-95"
+              >
+                <div
+                  v-if="openMenu === 'quiz'"
+                  class="absolute right-0 z-40 mt-2 w-44 origin-top-right overflow-hidden rounded-2xl border border-ink/8 bg-white/95 p-1.5 shadow-[0_18px_50px_rgba(12,18,34,0.14)] backdrop-blur-xl dark:border-white/10 dark:bg-ink-soft/95 dark:shadow-[0_18px_50px_rgba(0,0,0,0.45)]"
+                  role="listbox"
+                  aria-label="Quiz type"
+                >
+                  <button
+                    v-for="q in QUIZ_MODES"
+                    :key="q.id"
+                    type="button"
+                    class="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-colors duration-150"
+                    :class="quizMode === q.id ? 'bg-accent/10 text-accent dark:bg-accent-bright/15 dark:text-accent-bright' : 'text-ink hover:bg-mist/70 dark:text-paper dark:hover:bg-white/5'"
+                    @click="onSetQuiz(q.id)"
+                  >
+                    {{ q.label }}
+                    <Icon v-if="quizMode === q.id" name="heroicons:check-20-solid" class="size-4" />
+                  </button>
+                </div>
+              </Transition>
+            </div>
+
+            <!-- Session -->
+            <div class="relative">
+              <button
+                type="button"
+                class="inline-flex h-10 items-center gap-1.5 rounded-full border border-ink/8 bg-white/80 px-3.5 text-sm font-medium text-ink shadow-[0_8px_30px_rgba(12,18,34,0.06)] backdrop-blur-md transition-[transform,background-color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97] dark:border-white/10 dark:bg-ink-soft/80 dark:text-paper dark:shadow-[0_8px_30px_rgba(0,0,0,0.35)]"
+                :aria-expanded="openMenu === 'session'"
+                aria-haspopup="listbox"
+                @click="toggleMenu('session')"
+              >
+                <span>{{ sessionLabel }}</span>
+                <Icon name="heroicons:chevron-down-20-solid" class="size-4 shrink-0 opacity-50" />
+              </button>
+
+              <Transition
+                enter-active-class="transition-[opacity,transform] duration-[180ms] ease-[cubic-bezier(0.23,1,0.32,1)]"
+                enter-from-class="opacity-0 scale-95"
+                enter-to-class="opacity-100 scale-100"
+                leave-active-class="transition-[opacity,transform] duration-120 ease-[cubic-bezier(0.23,1,0.32,1)]"
+                leave-from-class="opacity-100 scale-100"
+                leave-to-class="opacity-0 scale-95"
+              >
+                <div
+                  v-if="openMenu === 'session'"
+                  class="absolute right-0 z-40 mt-2 w-64 origin-top-right overflow-hidden rounded-2xl border border-ink/8 bg-white/95 p-1.5 shadow-[0_18px_50px_rgba(12,18,34,0.14)] backdrop-blur-xl dark:border-white/10 dark:bg-ink-soft/95 dark:shadow-[0_18px_50px_rgba(0,0,0,0.45)]"
+                  role="listbox"
+                  aria-label="Play mode"
+                >
+                  <button
+                    type="button"
+                    class="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-colors duration-150"
+                    :class="session === 'free' && !isActive && !isComplete ? 'bg-accent/10 text-accent dark:bg-accent-bright/15 dark:text-accent-bright' : 'text-ink hover:bg-mist/70 dark:text-paper dark:hover:bg-white/5'"
+                    @click="onSetSession('free')"
+                  >
+                    Free play
+                    <Icon v-if="session === 'free' && !isActive && !isComplete" name="heroicons:check-20-solid" class="size-4" />
+                  </button>
+
+                  <div class="my-1.5 border-t border-ink/6 dark:border-white/8" />
+
+                  <p class="px-3 pt-1 pb-2 font-mono text-[10px] tracking-[0.12em] text-fog uppercase">
+                    Challenge length
+                  </p>
+
+                  <div class="mb-2 flex flex-wrap gap-1.5 px-2">
+                    <button
+                      v-for="n in ROUND_GOAL_PRESETS"
+                      :key="n"
+                      type="button"
+                      class="min-w-10 rounded-lg px-2.5 py-1.5 text-sm font-medium tabular-nums transition-colors duration-150"
+                      :class="roundGoal === n
+                        ? 'bg-accent text-white dark:bg-accent-bright dark:text-ink'
+                        : 'bg-mist/80 text-ink hover:bg-mist dark:bg-white/5 dark:text-paper dark:hover:bg-white/10'"
+                      @click="onPickGoal(n)"
+                    >
+                      {{ n }}
+                    </button>
+                  </div>
+
+                  <div class="mb-2 flex items-center gap-2 px-2">
+                    <label class="sr-only" for="challenge-goal-input">Custom rounds</label>
+                    <input
+                      id="challenge-goal-input"
+                      v-model.number="goalDraft"
+                      type="number"
+                      :min="MIN_ROUND_GOAL"
+                      :max="MAX_ROUND_GOAL"
+                      class="h-9 w-full rounded-xl border border-ink/8 bg-paper px-3 text-sm tabular-nums text-ink focus:border-accent focus:outline-none dark:border-white/10 dark:bg-ink dark:text-paper dark:focus:border-accent-bright"
+                      @keydown.enter.prevent="onStartCustomChallenge"
+                    >
+                    <button
+                      type="button"
+                      class="h-9 shrink-0 rounded-xl bg-ink px-3 text-sm font-medium text-paper transition-[transform,background-color] duration-150 active:scale-[0.97] dark:bg-paper dark:text-ink"
+                      @click="onStartCustomChallenge"
+                    >
+                      Start
+                    </button>
+                  </div>
+                </div>
+              </Transition>
+            </div>
+          </div>
+        </Transition>
 
         <button
           type="button"
@@ -589,6 +623,11 @@ const sessionLabel = computed(() =>
   session.value === 'challenge' ? `Challenge · ${roundGoal.value}` : 'Free play',
 )
 
+// Hide settings + search for the whole challenge run (active + end screen)
+const challengeChromeHidden = computed(
+  () => session.value === 'challenge' && (isActive.value || isComplete.value),
+)
+
 const statusLine = computed(() => {
   const base = `${promptLabel.value} · ${pool.value.length}`
   if (session.value === 'challenge' && (isActive.value || isComplete.value)) {
@@ -710,6 +749,13 @@ function onChangeSettings() {
   refreshRound()
 }
 
+function onQuitChallenge() {
+  if (!settingsLocked.value) return
+  closeMenus()
+  closeSearch()
+  onChangeSettings()
+}
+
 const isChallengeScoring = computed(
   () => session.value === 'challenge' && isActive.value && revealed.value,
 )
@@ -722,6 +768,7 @@ useGameHotkeys(
     isComplete,
     isChallengeScoring,
     isSearchOpen,
+    canOpenSearch: computed(() => !challengeChromeHidden.value),
   },
   {
     reveal,
@@ -730,6 +777,7 @@ useGameHotkeys(
     scoreMissed: () => handleScore(false),
     playAgain: onPlayAgain,
     openSearch: () => {
+      if (challengeChromeHidden.value) return
       closeMenus()
       openSearch()
     },
@@ -739,6 +787,12 @@ useGameHotkeys(
     },
   },
 )
+
+watch(challengeChromeHidden, (hidden) => {
+  if (!hidden) return
+  closeMenus()
+  closeSearch()
+})
 
 watch(isSearchOpen, (open) => {
   if (open) {
