@@ -188,12 +188,12 @@
                   <div class="my-1.5 border-t border-ink/6 dark:border-white/8" />
 
                   <p class="px-3 pt-1 pb-2 font-mono text-[10px] tracking-[0.12em] text-fog uppercase">
-                    Challenge length
+                    Challenge length · max {{ maxChallengeGoal }}
                   </p>
 
                   <div class="mb-2 flex flex-wrap gap-1.5 px-2">
                     <button
-                      v-for="n in ROUND_GOAL_PRESETS"
+                      v-for="n in availableGoalPresets"
                       :key="n"
                       type="button"
                       class="min-w-10 rounded-lg px-2.5 py-1.5 text-sm font-medium tabular-nums transition-colors duration-150"
@@ -213,7 +213,7 @@
                       v-model.number="goalDraft"
                       type="number"
                       :min="MIN_ROUND_GOAL"
-                      :max="MAX_ROUND_GOAL"
+                      :max="maxChallengeGoal"
                       class="h-9 w-full rounded-xl border border-ink/8 bg-paper px-3 text-sm tabular-nums text-ink focus:border-accent focus:outline-none dark:border-white/10 dark:bg-ink dark:text-paper dark:focus:border-accent-bright"
                       @keydown.enter.prevent="onStartCustomChallenge"
                     >
@@ -605,8 +605,21 @@ const isAdvancingRound = ref(false)
 const openMenu = ref<MenuId | null>(null)
 const goalDraft = ref(roundGoal.value)
 
+// Cap challenge length to unique countries in the current pool
+const maxChallengeGoal = computed(() =>
+  Math.min(MAX_ROUND_GOAL, Math.max(MIN_ROUND_GOAL, pool.value.length || MIN_ROUND_GOAL)),
+)
+
+const availableGoalPresets = computed(() =>
+  ROUND_GOAL_PRESETS.filter(n => n <= maxChallengeGoal.value),
+)
+
 watch(roundGoal, (n) => {
   goalDraft.value = n
+})
+
+watch(maxChallengeGoal, (max) => {
+  if (goalDraft.value > max) goalDraft.value = max
 })
 
 const regionsLabel = computed(() => {

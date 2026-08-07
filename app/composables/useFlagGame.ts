@@ -1,17 +1,38 @@
 import type { Country } from '~/composables/useCountryPool'
 import { allCountries } from '~/composables/useCountryPool'
+import { MIN_ROUND_GOAL } from '~/composables/useGameSession'
 
 export const ROUND_SECONDS = 10
+
+/** Fisher–Yates copy — challenge session playlist */
+export function shuffleCountries(list: Country[]): Country[] {
+  const out = list.slice()
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    const tmp = out[i]!
+    out[i] = out[j]!
+    out[j] = tmp
+  }
+  return out
+}
+
+export function clampGoalToPool(goal: number, poolSize: number): number {
+  const cap = Math.max(MIN_ROUND_GOAL, poolSize)
+  if (!Number.isFinite(goal)) return Math.min(MIN_ROUND_GOAL, cap)
+  return Math.min(Math.max(MIN_ROUND_GOAL, Math.round(goal)), cap)
+}
 
 export function useFlagGame() {
   const { pool, loadPersisted: loadPool } = useCountryPool()
   const { loadPersisted: loadQuiz } = useQuizMode()
   const {
     session,
+    roundGoal,
     isActive,
     isComplete,
     startChallenge,
     playAgain,
+    setRoundGoal,
     loadPersistedGoal,
   } = useGameSession()
 
@@ -20,11 +41,15 @@ export function useFlagGame() {
   const timeLeft = ref(ROUND_SECONDS)
   const running = ref(false)
 
-  // ponytail: no-repeat within a challenge run; ceiling = pool size then allow repeats
-  const seenNames = ref<Set<string>>(new Set())
+  // ponytail: Spotify-style session deck — no repeats until Play again / new challenge
+  const deck = ref<Country[]>([])
 
   let intervalId: ReturnType<typeof setInterval> | null = null
   let paused = false
+
+  function activeList(): Country[] {
+    return pool.value.length ? pool.value : allCountries
+  }
 
   function clearTimer() {
     if (intervalId !== null) {
@@ -56,35 +81,46 @@ export function useFlagGame() {
     revealed.value = true
   }
 
+  function reshuffleDeck() {
+    deck.value = shuffleCountries(activeList())
+  }
+
   function pickFromPool(): Country {
-    const list = pool.value.length ? pool.value : allCountries
-    const available = list.filter(c => !seenNames.value.has(c.name))
-    const pickFrom = available.length ? available : list
-    return pickFrom[Math.floor(Math.random() * pickFrom.length)]!
+    const list = activeList()
+    if (session.value === 'challenge' && isActive.value) {
+      const nextCountry = deck.value[0]
+      if (nextCountry) {
+        deck.value = deck.value.slice(1)
+        return nextCountry
+      }
+      // ponytail: deck empty despite capped goal — shouldn't happen; last resort unique-ish pick
+      return list[Math.floor(Math.random() * list.length)]!
+    }
+    return list[Math.floor(Math.random() * list.length)]!
   }
 
   function next() {
     if (!pool.value.length && !allCountries.length) return
     currentCountry.value = pickFromPool()
-    if (session.value === 'challenge' && isActive.value) {
-      seenNames.value = new Set([...seenNames.value, currentCountry.value.name])
-    }
     revealed.value = false
     startTimer()
   }
 
   function resetSeen() {
-    seenNames.value = new Set()
+    deck.value = []
   }
 
   function beginChallenge(goal?: number) {
-    resetSeen()
-    startChallenge(goal)
+    const capped = clampGoalToPool(goal ?? roundGoal.value, activeList().length)
+    reshuffleDeck()
+    startChallenge(capped)
     next()
   }
 
   function beginPlayAgain() {
-    resetSeen()
+    const capped = clampGoalToPool(roundGoal.value, activeList().length)
+    if (capped !== roundGoal.value) setRoundGoal(capped)
+    reshuffleDeck()
     playAgain()
     next()
   }
